@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Fonte: https://colab.research.google.com/github/tensorflow/examples/blob/master/courses/udacity_intro_to_tensorflow_for_deep_learning/l07c01_saving_and_loading_models.ipynb#scrollTo=3n0Wb9ylKd8R
+
 # Import stuff
 import time
 import matplotlib.pylab as plt
@@ -99,4 +101,59 @@ print(export_path_keras)
 model.save(export_path_keras)
 
 # Part 4: Load the Keras .h5 Model
+reloaded = tf.keras.models.load_model(      # Reloaded to distinguish from the original model
+  export_path_keras,
+  # `custom_objects` tells keras how to load a `hub.KerasLayer`
+  custom_objects={'KerasLayer': hub.KerasLayer})
 
+reloaded.summary()
+
+# Check if the reloaded model makes the same predictions as the original model (it should be true)
+result_batch = model.predict(image_batch)
+reloaded_result_batch = reloaded.predict(image_batch)
+
+(abs(result_batch - reloaded_result_batch)).max()
+
+# Keep training
+EPOCHS = 3
+history = reloaded.fit(train_batches,
+                    epochs=EPOCHS,
+                    validation_data=validation_batches)
+
+# Part 5 - Export saved model
+t = time.time()
+
+export_path_sm = "./{}".format(int(t))
+print(export_path_sm)
+
+tf.saved_model.save(model, export_path_sm)
+
+# Part 6 - Load Saved Model
+reloaded_sm = tf.saved_model.load(export_path_sm)
+reload_sm_result_batch = reloaded_sm(image_batch, training=False).numpy()
+(abs(result_batch - reload_sm_result_batch)).max()
+
+# Part 7: Loading the SavedModel as a Keras Model
+t = time.time()
+
+export_path_sm = "./{}".format(int(t))
+print(export_path_sm)
+tf.saved_model.save(model, export_path_sm)
+
+reload_sm_keras = tf.keras.models.load_model(
+  export_path_sm,
+  custom_objects={'KerasLayer': hub.KerasLayer})
+
+reload_sm_keras.summary()
+
+result_batch = model.predict(image_batch)
+reload_sm_keras_result_batch = reload_sm_keras.predict(image_batch)
+
+# Part 8 - Download the model
+# !zip -r model.zip {export_path_sm}
+#
+# try:
+#   from google.colab import files
+#   files.download('./model.zip')
+# except ImportError:
+#   pass
